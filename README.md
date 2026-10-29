@@ -40,12 +40,17 @@ reads; this file is for people setting it up.
    You can also check the skill out directly into `.claude/skills/`, but
    see "Sandboxes" below.
 3. **Create the issues directory:** `issues/PROJECT.md` (from
-   `PROJECT.template.md`), `issues/TODO.md` with its status block,
+   `PROJECT.template.md`: the skill's settings for the project, and only
+   those), optionally `issues/README.md` (for readers of the repository:
+   what the directory is, pointing to this skill and to `PROJECT.md`, and
+   whatever the project adds to the workflow, such as its own conventions
+   for issues), `issues/TODO.md` with its status block,
    `issues/open/` and `issues/closed/` (with a `.gitkeep` each), and ignore
    `issues/locks/` in `.gitignore`.
 4. **Point the project's `CLAUDE.md` at it,** in a line such as "Work is
    tracked in `issues/` with the Darais Issues Workflow skill; read its
-   `SKILL.md` and `issues/PROJECT.md` before working on an issue."
+   `SKILL.md`, and `issues/PROJECT.md` and `issues/README.md`, before
+   working on an issue."
 
 ## Updating
 

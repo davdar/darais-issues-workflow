@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.0.1. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.1.0. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -53,8 +53,16 @@ this file, is a template):
 - the *main branch*, and how to push it;
 - where *worktrees* go;
 - the *full checks*, which must pass before an issue closes;
-- anything else particular to the project, such as how to run commands
-  in its sandbox.
+- anything else the workflow needs to know to run in the project, such as
+  how to run commands in its sandbox.
+
+`PROJECT.md` is only that: the settings this file refers to, like a
+configuration file. What a project *adds* to the workflow (its own
+conventions for issues, such as how measurements are reported, or which
+rules of its `CLAUDE.md` apply to issues) goes in the issues directory's
+`README.md`, if it has any, which points to this skill and to
+`PROJECT.md`, then lists the additions. The Worker reads both, with this
+file, before working on an issue.
 
 ## Keeping this skill current
 
@@ -100,7 +108,10 @@ issue, before applying it.
 
 In the issues directory:
 
-- `PROJECT.md`: the project's settings.
+- `PROJECT.md`: the project's settings for this skill, and nothing else.
+- `README.md` (optional): for people reading the repository, what the
+  directory is (pointing to this skill and to `PROJECT.md`), and what the
+  project adds to the workflow.
 - `TODO.md`: new requests from the Reviewer, not yet issues.
 - `open/<issue>.md`: an open issue, named in kebab case (`check-speed`).
 - `closed/<issue>.md`: a closed one.
@@ -163,7 +174,9 @@ a round, and that its job is to turn its items into issues.
 
 ## A round: "make progress on issues"
 
-1. **Update this skill** (see "Keeping this skill current").
+1. **Update this skill** (see "Keeping this skill current"), and read the
+   project's `PROJECT.md` and, if there is one, the issues directory's
+   `README.md`.
 2. **Commit the Reviewer's changes** on the main branch (their responses,
    new items in `TODO.md`, status boxes they set) before working on them,
    so that their changes and the Worker's are separate commits. The box is

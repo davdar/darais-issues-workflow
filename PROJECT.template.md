@@ -2,7 +2,8 @@
 
 The workflow (`SKILL.md`, in the skill's checkout) refers to these by
 name. Copy this file to the issues directory as `PROJECT.md` and fill it
-in.
+in. Keep it to these settings: what the project adds to the workflow goes
+in the issues directory's `README.md`.
 
 - **The Reviewer's name:** `<the person who directs the work, such as Ada>`.
 - **The Worker's name:** `<the agent doing the work, such as Claude>`, used
@@ -14,7 +15,7 @@ in.
   `SKILL.md` says. `<.claude/skills/darais-issues-workflow
   is a symbolic link to it.>` Its `lock.py` is run as `python3
   <path>/lock.py`.
-- **Workflow version:** `1.0.1`, the version of the skill whose changes
+- **Workflow version:** `1.1.0`, the version of the skill whose changes
   this project has applied (the Worker updates it, as `SKILL.md` says).
 - **The main branch:** `<main>`, pushed with `<git push origin main>`.
   <Push after every commit to it, or not.> <Who merges it into the release
@@ -22,5 +23,5 @@ in.
 - **Worktrees** go in `<a folder git ignores, such as .worktrees/<issue>>`.
 - **The full checks:** <the build, the tests, and anything else that must
   pass before an issue closes>.
-- **Anything else:** <sandbox rules for commands, where dependencies' source
-  is, conventions for commit messages, ...>.
+- **Anything else the workflow needs to run here:** <sandbox rules for its
+  commands, ...>, or nothing.

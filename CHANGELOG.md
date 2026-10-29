@@ -4,6 +4,17 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.1.0 (2026-10-29)
+
+`PROJECT.md` is the skill's settings only; what a project adds to the
+workflow goes in the issues directory's `README.md` (optional), which the
+Worker reads with `PROJECT.md` at the start of a round.
+
+Migrating: move anything in `PROJECT.md` that isn't a setting `SKILL.md`
+refers to (the project's own conventions for issues, say) into
+`issues/README.md`, creating it if needed, with a pointer to the skill and
+to `PROJECT.md` at its top; set `Workflow version: 1.1.0`.
+
 ## 1.0.1 (2026-10-29)
 
 Clearer rules for commands a sandbox excludes; nothing to migrate.
