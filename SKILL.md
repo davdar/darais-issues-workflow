@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.0.0. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.0.1. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -72,14 +72,16 @@ project reach every project that uses it. How depends on the checkout:
   If the checkout moved, the Worker commits it on the main branch
   (`git add <checkout>`), with any changes the update calls for (below).
 - **A clone of its own** (outside the project, such as one in the home
-  directory that every project shares, or in a folder git ignores): from
-  inside the checkout, as a command of its own,
+  directory that every project shares, or in a folder git ignores):
+  `cd <checkout>` as a command of its own, then, as another,
 
       git pull --ff-only
 
-  then back to the project. (Not `git -C <checkout> pull`: a sandbox's
-  exclusions for commands may not match an option before the subcommand.)
-  There's nothing to commit in the project, beyond the changes below.
+  then `cd` back to the project. (Not `git -C <checkout> pull`, nor
+  `cd <checkout> && git pull`: a sandbox's exclusion matches only a plain
+  command that is the whole call, so either form stays sandboxed and can't
+  reach the remote.) There's nothing to commit in the project, beyond the
+  changes below.
 
 Then the Worker compares the version at the top of this file with the
 project's *workflow version*. It doesn't compare with what the checkout
@@ -252,8 +254,8 @@ a fast-forward merge needs the branch rebased after the last of them:
 4. Remove the status boxes and the `Priority:` and `... Blocked On:` lines,
    keeping `Parent:` if it has one; `git mv` the file to `closed/`,
    commit, `lock.py drop <issue>`, and push the main branch.
-5. `git worktree remove <worktrees>/<issue>`, then `git branch -d
-   issue/<issue>`, each as its own command.
+5. In the main checkout, `git worktree remove <worktrees>/<issue>`, then
+   `git branch -d issue/<issue>`, each as its own command.
 6. Issues blocked on it, once all their blockers are closed, become ready
    (`lock.py unblock`), and branches stacked on it are rebased onto the
    main branch.
@@ -287,16 +289,19 @@ Issues are read in a plain text editor as much as rendered, so:
 When a command is blocked, by a sandbox or by a permission rule or check,
 don't ask to run it unsandboxed or retry it some other way round the
 block. (A command that a setting should allow may just be written in a
-form the setting doesn't match: write commands plainly, one per call, with
-no options before a subcommand, as in `git push origin main` run from
-inside the repository rather than `git -C <repo> push origin main`.) Find
-a different approach that stays within it (such as a `python3` script, a
-path under `$TMPDIR`, or a file-editing tool). If there is none, write in
-the issue what was blocked and why, and move on to other work. In either
-case, recommend the change to the project's settings (for Claude Code,
-`.claude/settings.local.json`) that would stop the same block next time:
-an entry in `sandbox.excludedCommands`, a path for
-`sandbox.filesystem.allowWrite`, or a rule in `permissions.allow`, with
-the exact JSON to add and why. Offer a command for the Reviewer to run
+form the setting doesn't match. A sandbox exclusion matches only a plain
+command that is the whole call: no pipes, no chaining, no `cd` in the same
+call, and no options before the subcommand, such as `git -C <repo>` or
+`git -c ...`. So `cd <repo>` as a command of its own, if the shell isn't
+there already, then run `git push origin main` as another; never
+`git -C <repo> push origin main`.) Find a different approach that stays
+within it (such as a `python3` script, a path under `$TMPDIR`, or a
+file-editing tool). If there is none, write in the issue what was blocked
+and why, and move on to other work. In either case, recommend the change
+to the project's settings (for Claude Code, `.claude/settings.local.json`)
+that would stop the same block next time: an entry in
+`sandbox.excludedCommands`, a path for `sandbox.filesystem.allowRead` or
+`allowWrite`, or a rule in `permissions.allow`, with the exact JSON to add
+and why. Offer a command for the Reviewer to run
 themselves only for what no setting can cover, such as an interactive
 login.

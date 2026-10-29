@@ -4,6 +4,19 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.0.1 (2026-10-29)
+
+Clearer rules for commands a sandbox excludes; nothing to migrate.
+
+- An exclusion matches only a plain command that is the whole call, so
+  `git -C <dir> pull` and `cd <dir> && git pull` stay sandboxed. Updating
+  a clone, and pushing from another repository, is a `cd` as a command of
+  its own, then the git command as another.
+- `git worktree remove` and `git branch -d`, when closing an issue, run in
+  the main checkout.
+- A blocked command's recommended settings change may also be a path for
+  `sandbox.filesystem.allowRead`.
+
 ## 1.0.0 (2026-10-29)
 
 The first version.

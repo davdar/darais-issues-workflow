@@ -68,28 +68,50 @@ under `.claude/skills/` (protected by default).
 
 - **Keep the checkout outside `.claude/skills/`,** with a symbolic link
   there (step 2 above).
-- **The update needs the network:** exclude it from the sandbox in
-  `sandbox.excludedCommands`, exactly as the Worker runs it, such as
-  `"git submodule update --remote submodules/darais-issues-workflow"`, or
-  `"git pull *"` for a clone (run from inside the clone: an exclusion may
-  not match `git -C <dir> pull`).
+- **Some of the workflow's git commands can't run in the sandbox:** it
+  can't reach SSH remotes or the SSH agent (`git pull`, `git push`,
+  `git fetch`), and `git worktree` and `git branch -d` write under `.git/`
+  where it doesn't allow them. Exclude them from the sandbox, and allow
+  them, since an excluded command runs outside the sandbox, where
+  `autoAllowBashIfSandboxed` doesn't approve it. In `~/.claude/settings.json`:
+
+      "permissions": {
+        "allow": [
+          "Bash(git branch -d *)", "Bash(git fetch *)", "Bash(git ls-remote *)",
+          "Bash(git pull *)", "Bash(git push *)", "Bash(git worktree *)"
+        ],
+        "deny": [
+          "Bash(git push -f*)", "Bash(git push * -f*)", "Bash(git push *--force*)",
+          "Bash(git * push -f*)", "Bash(git * push * -f*)", "Bash(git * push *--force*)"
+        ]
+      },
+      "sandbox": {
+        "excludedCommands": [
+          "git branch -d *", "git fetch *", "git ls-remote *",
+          "git pull *", "git push *", "git worktree *"
+        ]
+      }
+
+  The deny rules keep force pushes out, whichever way they're written. For
+  a submodule checkout, also exclude and allow the update exactly as the
+  Worker runs it, such as
+  `"git submodule update --remote submodules/darais-issues-workflow"`.
+- **An exclusion matches only a plain command that is the whole call.**
+  `git -C <dir> pull`, `cd <dir> && git pull`, a pipe or a chain all stay
+  sandboxed, and fail. So the Worker `cd`s into a repository as a command
+  of its own, then runs the git command as another.
 - **A clone outside the project** (such as `~/p/darais-issues-workflow`,
   shared by every project) is outside what Claude Code lets a session
   reach, so in `~/.claude/settings.json`, for every project:
 
       "permissions": {
-        "additionalDirectories": ["/Users/<you>/p/darais-issues-workflow"]
-      },
-      "sandbox": {
-        "filesystem": {
-          "allowRead": ["~/p/darais-issues-workflow"],
-          "allowWrite": ["~/p/darais-issues-workflow"]
-        }
+        "additionalDirectories": ["~/p/darais-issues-workflow"]
       }
 
-  `additionalDirectories` lets the Worker read the skill and work inside
-  its checkout, `allowRead` lets a sandboxed `python3` run its `lock.py`,
-  and `allowWrite` lets the Worker improve the skill and commit there.
+  That makes it a working directory in every session: readable and
+  writable by Claude's file tools and by sandboxed commands, so the Worker
+  can read the skill, run its `lock.py` with `python3`, and improve the
+  skill and commit there, with no `sandbox.filesystem` entries.
 
 **Trust:** the Worker follows what this repository says, in every project
 that uses it, so only people you trust should be able to push to it.
