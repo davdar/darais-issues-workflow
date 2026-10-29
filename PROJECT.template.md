@@ -1,0 +1,23 @@
+# This project's settings for the Darais Issues Workflow
+
+The workflow (`SKILL.md`, in the skill's checkout) refers to these by
+name. Copy this file to the issues directory as `PROJECT.md` and fill it
+in.
+
+- **The Reviewer's name:** `<the person who directs the work, such as Ada>`.
+- **The Worker's name:** `<the agent doing the work, such as Claude>`, used
+  in issues' section headings.
+- **The issues directory:** `issues/`.
+- **The skill's checkout:** `<path, such as submodules/darais-issues-workflow>`,
+  a `<git submodule of the project | clone of its own>`, updated at the start
+  of every round as `SKILL.md` says. `<.claude/skills/darais-issues-workflow
+  is a symbolic link to it.>` Its `lock.py` is run as `python3
+  <path>/lock.py`.
+- **The main branch:** `<main>`, pushed with `<git push origin main>`.
+  <Push after every commit to it, or not.> <Who merges it into the release
+  branch.>
+- **Worktrees** go in `<a folder git ignores, such as .worktrees/<issue>>`.
+- **The full checks:** <the build, the tests, and anything else that must
+  pass before an issue closes>.
+- **Anything else:** <sandbox rules for commands, where dependencies' source
+  is, conventions for commit messages, ...>.
