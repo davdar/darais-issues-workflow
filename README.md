@@ -50,24 +50,46 @@ reads; this file is for people setting it up.
 ## Updating
 
 At the start of every round the Worker updates the checkout (`git
-submodule update --remote <checkout>` for a submodule, `git -C <checkout>
-pull --ff-only` for a clone), and when the version changes, reads
-`CHANGELOG.md` and applies it. To publish an improvement, commit it here
+submodule update --remote <checkout>` for a submodule, `git pull
+--ff-only` inside the checkout for a clone). Each project records the
+version it has applied (`Workflow version:` in its `PROJECT.md`), so a
+clone shared by every project can be updated in one project's round and
+still applied in each of the others at theirs: when `SKILL.md`'s version
+is newer than the project's, the Worker reads `CHANGELOG.md` and applies
+it. To publish an improvement, commit it here
 with a new version in `SKILL.md` and an entry in `CHANGELOG.md`; each
 project picks it up at its next round.
 
 ## Sandboxes and permissions
 
-Claude Code's sandbox may stop the Worker from updating the skill
-(network access) or from writing under `.claude/skills/` (protected by
-default). In the project's `.claude/settings.local.json`:
+Claude Code's sandbox and permissions may stop the Worker from updating
+the skill (network access), from running its `lock.py`, or from writing
+under `.claude/skills/` (protected by default).
 
-- add the update command, exactly as the Worker runs it, to
-  `sandbox.excludedCommands`, such as
-  `"git submodule update --remote submodules/darais-issues-workflow"`;
-- keep the checkout outside `.claude/skills/`, with a symbolic link there
-  (step 2 above), or else allow writes to it with
-  `sandbox.filesystem.allowWrite`.
+- **Keep the checkout outside `.claude/skills/`,** with a symbolic link
+  there (step 2 above).
+- **The update needs the network:** exclude it from the sandbox in
+  `sandbox.excludedCommands`, exactly as the Worker runs it, such as
+  `"git submodule update --remote submodules/darais-issues-workflow"`, or
+  `"git pull *"` for a clone (run from inside the clone: an exclusion may
+  not match `git -C <dir> pull`).
+- **A clone outside the project** (such as `~/p/darais-issues-workflow`,
+  shared by every project) is outside what Claude Code lets a session
+  reach, so in `~/.claude/settings.json`, for every project:
+
+      "permissions": {
+        "additionalDirectories": ["/Users/<you>/p/darais-issues-workflow"]
+      },
+      "sandbox": {
+        "filesystem": {
+          "allowRead": ["~/p/darais-issues-workflow"],
+          "allowWrite": ["~/p/darais-issues-workflow"]
+        }
+      }
+
+  `additionalDirectories` lets the Worker read the skill and work inside
+  its checkout, `allowRead` lets a sandboxed `python3` run its `lock.py`,
+  and `allowWrite` lets the Worker improve the skill and commit there.
 
 **Trust:** the Worker follows what this repository says, in every project
 that uses it, so only people you trust should be able to push to it.

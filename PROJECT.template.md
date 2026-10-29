@@ -9,10 +9,13 @@ in.
   in issues' section headings.
 - **The issues directory:** `issues/`.
 - **The skill's checkout:** `<path, such as submodules/darais-issues-workflow>`,
-  a `<git submodule of the project | clone of its own>`, updated at the start
-  of every round as `SKILL.md` says. `<.claude/skills/darais-issues-workflow
+  a `<git submodule of the project | clone of its own, such as
+  ~/p/darais-issues-workflow>`, updated at the start of every round as
+  `SKILL.md` says. `<.claude/skills/darais-issues-workflow
   is a symbolic link to it.>` Its `lock.py` is run as `python3
   <path>/lock.py`.
+- **Workflow version:** `1.0.0`, the version of the skill whose changes
+  this project has applied (the Worker updates it, as `SKILL.md` says).
 - **The main branch:** `<main>`, pushed with `<git push origin main>`.
   <Push after every commit to it, or not.> <Who merges it into the release
   branch.>

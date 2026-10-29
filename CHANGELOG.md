@@ -22,5 +22,5 @@ its own copy of rules like these:
 3. Move the workflow's rules out of the project's own files, since
    `SKILL.md` has them, and keep only the project's settings, in
    `PROJECT.md` (from `PROJECT.template.md`), with the Reviewer's and the
-   Worker's names.
+   Worker's names, and `Workflow version: 1.0.0`.
 4. Release every lock, then use this `lock.py` in place of any copy.
