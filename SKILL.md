@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.2.0. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.2.1. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -248,8 +248,8 @@ else `issues/` in the working directory. Its commands:
 - **`lock.py take <issue>`** creates `locks/<issue>.lock` atomically
   (failing if another Worker holds it), checks "Worker Working", and makes
   the file read-only, so that an editor warns the Reviewer before they
-  change it. It refuses an issue that isn't "Ready for Worker" (or a stale
-  "Worker Working").
+  change it (it says so, and that `open` comes before editing). It refuses
+  an issue that isn't "Ready for Worker" (or a stale "Worker Working").
 - **`lock.py open <issue>`** makes a held issue's file writable, to append
   to it; **`lock.py shut <issue>`** makes it read-only again.
 - **`lock.py release <issue> <status>`** sets the status (`worker`,
@@ -259,8 +259,8 @@ else `issues/` in the working directory. Its commands:
 - **`lock.py unblock <issue>`** is for an issue blocked for the Worker
   whose blockers have all closed: it checks "Ready for Worker" and removes
   the `Worker Blocked On:` line (no lock needed).
-- **`lock.py drop <issue>`** removes the lock, leaving the status, after
-  closing an issue.
+- **`lock.py drop <issue>`** removes the lock, if any, leaving the status,
+  after closing an issue.
 - **`lock.py status`** lists the locks, with their age.
 
 Use `TODO` as the issue to lock `TODO.md`.

@@ -18,9 +18,9 @@
                                          whose blockers have all closed:
                                          "Ready for Worker", and its `Worker
                                          Blocked On:` line removed
-    lock.py [--dir DIR] drop <issue>     remove the lock and make the file
-                                         writable, leaving the status (after
-                                         closing an issue)
+    lock.py [--dir DIR] drop <issue>     remove the lock, if any, and make
+                                         the file writable, leaving the
+                                         status (after closing an issue)
     lock.py [--dir DIR] status           list the locks, with their age
 
 The issues directory is --dir DIR, or the ISSUES_DIR environment variable,
@@ -132,6 +132,7 @@ def take(issue):
     set_writable(path, True)
     set_status(path, "working")
     set_writable(path, False)
+    print(f"{issue} locked; its file is read-only: `lock.py open {issue}` before editing it")
 
 
 def release(issue, status):
@@ -161,7 +162,10 @@ def drop(issue):
     path = issue_file(issue)
     if os.path.exists(path):
         set_writable(path, True)
-    os.remove(lock_file(issue))
+    if os.path.exists(lock_file(issue)):
+        os.remove(lock_file(issue))
+    else:
+        print(f"{issue} wasn't locked", file=sys.stderr)
 
 
 def show_status():

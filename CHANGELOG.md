@@ -4,6 +4,14 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.2.1 (2026-11-03)
+
+`lock.py take` says that it made the issue's file read-only and that
+`lock.py open` comes before editing it, so that the Worker doesn't find
+out from a refused edit; `lock.py drop` no longer fails on an issue with
+no lock (one handed to the Reviewer before being closed). Nothing to
+migrate; set `Workflow version: 1.2.1`.
+
 ## 1.2.0 (2026-11-03)
 
 Checking that the skill's checkout is current costs the Worker less (the
