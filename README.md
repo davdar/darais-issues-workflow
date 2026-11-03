@@ -14,6 +14,7 @@ reads; this file is for people setting it up.
 | `lock.py`             | takes and releases issues, so several Workers don't collide         |
 | `PROJECT.template.md` | the settings each project fills in, as its `issues/PROJECT.md`      |
 | `CHANGELOG.md`        | what changed between versions, and how to migrate                   |
+| `update.sh`           | a `SessionStart` hook that keeps a clone current (see "Updating")   |
 
 ## Using it in a project
 
@@ -54,16 +55,45 @@ reads; this file is for people setting it up.
 
 ## Updating
 
-At the start of every round the Worker updates the checkout (`git
-submodule update --remote <checkout>` for a submodule, `git pull
---ff-only` inside the checkout for a clone). Each project records the
-version it has applied (`Workflow version:` in its `PROJECT.md`), so a
-clone shared by every project can be updated in one project's round and
-still applied in each of the others at theirs: when `SKILL.md`'s version
-is newer than the project's, the Worker reads `CHANGELOG.md` and applies
-it. To publish an improvement, commit it here
-with a new version in `SKILL.md` and an entry in `CHANGELOG.md`; each
-project picks it up at its next round.
+Each project records the version it has applied (`Workflow version:` in
+its `PROJECT.md`), so a clone shared by every project can be updated in
+one project's session and still applied in each of the others at theirs:
+when `SKILL.md`'s version is newer than the project's, the Worker reads
+`CHANGELOG.md` and applies it. The checkout itself is kept current once
+per session, either way:
+
+- **By a hook** (recommended for a clone that every project shares):
+  `update.sh` pulls the clone and prints one line, with the skill's
+  version and the project's, into the session's context, so that the
+  Worker runs nothing. Hooks run outside the Bash sandbox, so the pull
+  reaches an SSH remote with your agent. In `~/.claude/settings.json`
+  (`startup|resume`, so that `/clear` and compaction don't pull again;
+  the timeout keeps an offline start from hanging):
+
+      "hooks": {
+        "SessionStart": [
+          {
+            "matcher": "startup|resume",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "~/p/darais-issues-workflow/update.sh",
+                "timeout": 20
+              }
+            ]
+          }
+        ]
+      }
+
+  In a directory without `issues/PROJECT.md` it prints nothing, so other
+  projects' sessions see no line (the pull still happens).
+- **By the Worker,** otherwise: `git submodule update --remote
+  <checkout>` for a submodule, `git pull --ff-only` inside the checkout
+  for a clone, in the session's first round.
+
+To publish an improvement, commit it here with a new version in
+`SKILL.md` and an entry in `CHANGELOG.md`; each project picks it up at
+its next session.
 
 ## Sandboxes and permissions
 

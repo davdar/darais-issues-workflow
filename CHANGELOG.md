@@ -4,6 +4,20 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.2.0 (2026-11-03)
+
+Checking that the skill's checkout is current costs the Worker less (the
+CPML project's issue `skill-update-cost`): it's done once per session,
+not at every round, and a clone can be kept current by a Claude Code
+`SessionStart` hook running the new `update.sh`, outside the sandbox,
+which prints one line with the skill's version and the project's into the
+session's context, so that the Worker runs nothing. `README.md` says how
+to set the hook up.
+
+Migrating: nothing required; set `Workflow version: 1.2.0`. To use the
+hook, add it to `~/.claude/settings.json` as `README.md` says, and say so
+in `PROJECT.md`'s *skill's checkout* setting.
+
 ## 1.1.0 (2026-10-29)
 
 `PROJECT.md` is the skill's settings only; what a project adds to the

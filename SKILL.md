@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.1.0. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.2.0. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -46,8 +46,9 @@ this file, is a template):
 
 - the *Reviewer's name* and the *Worker's name*;
 - the *issues directory* (usually `issues/`);
-- the *skill's checkout*: where this skill is, and whether it's a git
-  submodule of the project or a clone of its own;
+- the *skill's checkout*: where this skill is, whether it's a git
+  submodule of the project or a clone of its own, and whether a hook
+  keeps a clone current;
 - the *workflow version*: the version of this skill whose changes the
   project has applied, as `Workflow version: 1.0.0`;
 - the *main branch*, and how to push it;
@@ -66,10 +67,36 @@ file, before working on an issue.
 
 ## Keeping this skill current
 
-This skill lives in its own git repository, and at the start of every
-round the Worker updates its checkout, so that improvements made in one
-project reach every project that uses it. How depends on the checkout:
+This skill lives in its own git repository, and its checkout is kept
+current, so that improvements made in one project reach every project
+that uses it. Once per session, in its first round (the skill's text is
+loaded once per session, and a later round would see the same checkout),
+the Worker makes sure of it, as the project's *skill's checkout* setting
+says:
 
+- **A clone kept current by a hook** (the usual way for a clone that
+  every project shares): a Claude Code `SessionStart` hook runs the
+  clone's `update.sh`, outside the sandbox, which pulls it and prints a
+  line into the session's context (on one line), such as
+
+      darais-issues-workflow: checkout updated; skill version 1.2.0,
+      this project's 1.1.0
+
+  When that line is in context, the Worker runs nothing: the checkout is
+  current (or the line says the pull failed, offline say, and the Worker
+  goes on with the checkout as it is), and the line has both versions to
+  compare, below. If the line is missing, the hook isn't set up
+  (`README.md` says how): the Worker updates the clone itself, as next.
+- **A clone updated by the Worker** (outside the project, or in a folder
+  git ignores): `cd <checkout>` as a command of its own, then, as another,
+
+      git pull --ff-only
+
+  then `cd` back to the project. (Not `git -C <checkout> pull`, nor
+  `cd <checkout> && git pull`: a sandbox's exclusion matches only a plain
+  command that is the whole call, so either form stays sandboxed and can't
+  reach the remote.) There's nothing to commit in the project, beyond the
+  changes below.
 - **A submodule of the project:** from the project's root,
 
       git submodule update --remote <checkout>
@@ -79,30 +106,19 @@ project reach every project that uses it. How depends on the checkout:
   out at a commit, not on a branch, so `git pull` inside it doesn't work.
   If the checkout moved, the Worker commits it on the main branch
   (`git add <checkout>`), with any changes the update calls for (below).
-- **A clone of its own** (outside the project, such as one in the home
-  directory that every project shares, or in a folder git ignores):
-  `cd <checkout>` as a command of its own, then, as another,
 
-      git pull --ff-only
-
-  then `cd` back to the project. (Not `git -C <checkout> pull`, nor
-  `cd <checkout> && git pull`: a sandbox's exclusion matches only a plain
-  command that is the whole call, so either form stays sandboxed and can't
-  reach the remote.) There's nothing to commit in the project, beyond the
-  changes below.
-
-Then the Worker compares the version at the top of this file with the
-project's *workflow version*. It doesn't compare with what the checkout
-was before the update: a shared clone may have been updated in another
-project's round, whose changes this project hasn't applied yet. If this
-file's version is newer, the Worker re-reads this file, reads
-`CHANGELOG.md` from the project's version to this one, applies what it
-says to the project (a new status, a renamed file, a migration of the
-issues directory), sets the project's workflow version to this one,
-commits that on the main branch, and tells the Reviewer what changed. A
-new major version means the issues directory needs migrating, and the
-changelog says how: the Worker shows the Reviewer the migration, in an
-issue, before applying it.
+Then the Worker compares the version at the top of this file (the hook's
+line has it) with the project's *workflow version*. It doesn't compare
+with what the checkout was before the update: a shared clone may have
+been updated in another project's round, whose changes this project
+hasn't applied yet. If this file's version is newer, the Worker re-reads
+this file, reads `CHANGELOG.md` from the project's version to this one,
+applies what it says to the project (a new status, a renamed file, a
+migration of the issues directory), sets the project's workflow version
+to this one, commits that on the main branch, and tells the Reviewer what
+changed. A new major version means the issues directory needs migrating,
+and the changelog says how: the Worker shows the Reviewer the migration,
+in an issue, before applying it.
 
 ## Files
 
@@ -174,9 +190,10 @@ a round, and that its job is to turn its items into issues.
 
 ## A round: "make progress on issues"
 
-1. **Update this skill** (see "Keeping this skill current"), and read the
-   project's `PROJECT.md` and, if there is one, the issues directory's
-   `README.md`.
+1. **Check this skill is current** (see "Keeping this skill current":
+   nothing to run when the hook's line is in context, or after the
+   session's first round), and read the project's `PROJECT.md` and, if
+   there is one, the issues directory's `README.md`.
 2. **Commit the Reviewer's changes** on the main branch (their responses,
    new items in `TODO.md`, status boxes they set) before working on them,
    so that their changes and the Worker's are separate commits. The box is
