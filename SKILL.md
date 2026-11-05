@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.2.1. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.2.2. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -203,20 +203,26 @@ a round, and that its job is to turn its items into issues.
    changes uncommitted and untouched, and keep them out of the Worker's own
    commits (stage files by name, never all of `open/` at once). So the
    Reviewer ticks the box last.
-3. **`TODO.md` first,** if it's "Ready for Worker". Turn each of its items
-   into an open issue (small related items may share one), and delete it
-   from `TODO.md`. Analyze each new issue: if it needs no decision from the
-   Reviewer, it's ready to work on; otherwise ask, and hand it to the
-   Reviewer.
+3. **`TODO.md` first,** if it's "Ready for Worker". Lock it as any issue
+   (`lock.py take TODO`, which checks "Worker Working"). Turn each of its
+   items into an open issue (small related items may share one), and
+   delete it from `TODO.md`. Analyze each new issue: if it needs no
+   decision from the Reviewer, it's ready to work on; otherwise ask, and
+   hand it to the Reviewer. Then release `TODO.md`, empty, as "Ready for
+   Reviewer" (`lock.py release TODO reviewer`): the Reviewer adds the next
+   requests and ticks "Ready for Worker".
 4. **Then the open issues** marked "Ready for Worker" (and only those),
    the new ones included, in the order that makes sense: blockers first,
    then by priority, and by how much each unblocks.
 5. For each: lock it (`lock.py take`, which checks "Worker Working"), read
    its last response, do what's ready, and append what was done, with
    results and evidence, and any questions. Then release it, with the
-   status it's left in. A question doesn't stop the rest: keep working on
-   everything it doesn't affect, and hand the issue to the Reviewer only
-   when nothing is left that doesn't need them.
+   status it's left in: "Ready for Reviewer" whenever the Worker is done
+   with it for now (finished, or waiting on a question), and "Ready for
+   Worker" only when work is left that a Worker can do without the
+   Reviewer (as when a session ends mid-issue). A question doesn't stop
+   the rest: keep working on everything it doesn't affect, and hand the
+   issue to the Reviewer only when nothing is left that doesn't need them.
 6. **New work found along the way** becomes a new issue, with `Parent:`
    naming the issue it came from.
 

@@ -4,6 +4,18 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.2.2 (2026-11-05)
+
+A round's step 3 says that the Worker locks `TODO.md` (`lock.py take
+TODO`, so it shows "Worker Working" while its items become issues) and,
+once they're issues, releases it, empty, as "Ready for Reviewer"; step 5
+says which status a released issue gets: "Ready for Reviewer" when the
+Worker is done with it for now, "Ready for Worker" only when work is
+left that needs no Reviewer. (Workers had left an emptied `TODO.md`
+"Ready for Worker".) Nothing to migrate: a `TODO.md` left "Ready for
+Worker" and empty waits until a Worker releases it. Set `Workflow
+version: 1.2.2`.
+
 ## 1.2.1 (2026-11-03)
 
 `lock.py take` says that it made the issue's file read-only and that
