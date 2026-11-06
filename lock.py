@@ -32,8 +32,8 @@
                                          every file. Sorted by status, in
                                          the status block's order (TODO.md
                                          first among its status's files,
-                                         then by name); --color highlights
-                                         each status
+                                         then by name); --color prints each
+                                         status in bold, in its color
 
 The issues directory is --dir DIR, or the ISSUES_DIR environment variable,
 or else issues/ in the working directory. <issue> is a file name in its
@@ -42,8 +42,8 @@ locks/<issue>.lock, created with O_EXCL, so two Workers can't both take an
 issue; it holds who took it and when.
 
 A status block is read in any order of its lines, and with or without its
-"Paused" line (as files from before 1.4.0 have them); whenever lock.py sets
-a status, it writes the whole block in LABELS' order.
+"Paused by Reviewer" line (as files from before 1.4.0 have them); whenever
+lock.py sets a status, it writes the whole block in LABELS' order.
 """
 
 import datetime
@@ -61,12 +61,12 @@ LABELS = [
     "Worker Working",
     "Blocked for Reviewer",
     "Blocked for Worker",
-    "Paused",
+    "Paused by Reviewer",
 ]
 # Lines a status block may lack: added in a later version than some files.
-OPTIONAL_LABELS = {"Paused"}
-# The statuses the Worker may set. "Blocked for Reviewer" and "Paused" are
-# the Reviewer's alone.
+OPTIONAL_LABELS = {"Paused by Reviewer"}
+# The statuses the Worker may set. "Blocked for Reviewer" and "Paused by
+# Reviewer" are the Reviewer's alone.
 STATUSES = {
     "worker": "Ready for Worker",
     "reviewer": "Ready for Reviewer",
@@ -232,16 +232,15 @@ def header(path):
     return checked, fields, response
 
 
-# `list --color`: each status's background, from the 16 standard ANSI colors
-# (the bright ones, and white, which terminals show as light gray), all light
-# enough for the black text drawn on them.
+# `list --color`: each status in bold, in a dark color of the 8 standard ANSI ones (or, for
+# "Paused by Reviewer", in white, which terminals show as light gray).
 COLORS = {
-    "Ready for Reviewer": "102",    # bright green
-    "Ready for Worker": "105",      # bright magenta: purple
-    "Worker Working": "103",        # bright yellow
-    "Blocked for Reviewer": "101",  # bright red
-    "Blocked for Worker": "101",
-    "Paused": "47",                 # white: light gray
+    "Ready for Reviewer": "32",     # green
+    "Ready for Worker": "35",       # magenta: purple
+    "Worker Working": "33",         # yellow, which terminals show dark: orange or brown
+    "Blocked for Reviewer": "31",   # red
+    "Blocked for Worker": "31",
+    "Paused by Reviewer": "37",     # white: light gray
 }
 
 
@@ -263,7 +262,7 @@ def show_list(color):
             continue
         status = f"{checked or 'nothing checked':<20}"
         if color and checked in COLORS:
-            status = f"\033[30;{COLORS[checked]}m{status}\033[0m"
+            status = f"\033[1;{COLORS[checked]}m{status}\033[0m"
         parts = [f"{name:<{width - 2}}", status]
         parts += [f"{key}: {fields[key]}" for key in HEADER_KEYS if key in fields]
         if response:

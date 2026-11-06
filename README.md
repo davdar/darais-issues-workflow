@@ -63,10 +63,10 @@ wraps it, for a person following the work; copy it to the project's root
 (or its targets into the project's own `Makefile`), and change `lock.py`'s
 path in it if the skill isn't in `~/.claude/skills`:
 
-- **`make status`** prints the list once, each status highlighted in its
+- **`make status`** prints the list once, each status in bold, in its
   own color (`lock.py list --color`): "Ready for Reviewer" green, "Ready
   for Worker" purple, "Worker Working" yellow, "Blocked for ..." red,
-  "Paused" gray.
+  "Paused by Reviewer" gray.
 - **`make watch`** prints it again whenever an issue's file changes, using
   [`entr`](https://eradman.com/entrproject/) (`brew install entr`, or your
   package manager's `entr`), until Ctrl-C. Issues added and closed are
