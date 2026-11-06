@@ -193,7 +193,13 @@ a round, and that its job is to turn its items into issues.
 1. **Check this skill is current** (see "Keeping this skill current":
    nothing to run when the hook's line is in context, or after the
    session's first round), and read the project's `PROJECT.md` and, if
-   there is one, the issues directory's `README.md`.
+   there is one, the issues directory's `README.md`. Then **triage with
+   `lock.py list`**, before reading any issue: only the files it shows as
+   "Ready for Worker" (or a "Worker Working" that may be stale, see
+   "Locks") are this round's work, and only they are read further. The
+   rest ("Ready for Reviewer", "Blocked for Reviewer", "Blocked for
+   Worker") aren't opened, beyond checking a blocked issue's blockers,
+   which the list also shows.
 2. **Commit the Reviewer's changes** on the main branch (their responses,
    new items in `TODO.md`, status boxes they set) before working on them,
    so that their changes and the Worker's are separate commits. The box is

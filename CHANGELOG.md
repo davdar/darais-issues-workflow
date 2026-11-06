@@ -10,8 +10,10 @@ updating, and how to migrate its issues directory when it must.
 its status, its `Priority:`, `... Blocked On:` and `Parent:` lines,
 whether its last REVIEWER RESPONSE block has text, and whether it's
 locked, so that a round can be planned without reading every issue in
-full. A file without a status block is listed as such. Nothing to
-migrate; set `Workflow version: 1.3.0`.
+full. A file without a status block is listed as such. A round's step 1
+now ends with triage by `lock.py list`: only the files it shows as
+"Ready for Worker" (or a possibly stale "Worker Working") are read
+further. Nothing to migrate; set `Workflow version: 1.3.0`.
 
 ## 1.2.2 (2026-11-05)
 
