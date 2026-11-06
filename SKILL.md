@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.3.0. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.4.0. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -153,33 +153,38 @@ end whenever it has something to ask or report:
 
 At the top of every open issue is its status block:
 
-    [ ] Ready for Worker
     [ ] Ready for Reviewer
-    [ ] Blocked for Worker
-    [ ] Blocked for Reviewer
+    [ ] Ready for Worker
     [ ] Worker Working
+    [ ] Blocked for Reviewer
+    [ ] Blocked for Worker
+    [ ] Paused
 
     Priority: <Low, Medium, High or Auto>
     Worker Blocked On: <issue>, ..., <issue>    (only when blocked for the Worker)
     Reviewer Blocked On: <description>          (only when blocked for the Reviewer)
     Parent: <issue>                             (only when it came from another)
 
-with exactly one box checked.
+with exactly one box checked, in that order (`lock.py list` sorts by it).
 
-- **Ready for Worker:** the Worker may work on it.
 - **Ready for Reviewer:** waiting for the Reviewer. The Worker never
   changes an issue in this state.
-- **Blocked for Worker:** the Worker can't go on until the issues named in
-  its `Worker Blocked On:` line are closed. Only the Worker sets this;
-  waiting for the Reviewer is "Ready for Reviewer" instead. When the last
-  of them closes, the Worker unblocks it (`lock.py unblock`).
+- **Ready for Worker:** the Worker may work on it.
+- **Worker Working:** the Worker is working on it, and holds its lock.
 - **Blocked for Reviewer:** the Reviewer can't go on until something else
   happens (feedback from a colleague, say), described briefly in its
   `Reviewer Blocked On:` line. Only the Reviewer sets this. To the Worker
   it's the same as "Ready for Reviewer": the Worker never changes it. It
   reminds the Reviewer, when they open the issue, that it may not be ready
   for them yet.
-- **Worker Working:** the Worker is working on it, and holds its lock.
+- **Blocked for Worker:** the Worker can't go on until the issues named in
+  its `Worker Blocked On:` line are closed. Only the Worker sets this;
+  waiting for the Reviewer is "Ready for Reviewer" instead. When the last
+  of them closes, the Worker unblocks it (`lock.py unblock`).
+- **Paused:** put down for a while, neither to be worked on nor closed.
+  Only the Reviewer sets this, and takes it up again by ticking another
+  box. To the Worker it's the same as "Ready for Reviewer": the Worker
+  never changes it.
 - **Priority** "Auto" means the Worker chooses one. A file without a
   status block, or without a priority, gets one added: "Ready for Worker",
   and "Auto".
@@ -198,17 +203,17 @@ a round, and that its job is to turn its items into issues.
    "Ready for Worker" (or a "Worker Working" that may be stale, see
    "Locks") are this round's work, and only they are read further. The
    rest ("Ready for Reviewer", "Blocked for Reviewer", "Blocked for
-   Worker") aren't opened, beyond checking a blocked issue's blockers,
-   which the list also shows.
+   Worker", "Paused") aren't opened, beyond checking a blocked issue's
+   blockers, which the list also shows.
 2. **Commit the Reviewer's changes** on the main branch (their responses,
    new items in `TODO.md`, status boxes they set) before working on them,
    so that their changes and the Worker's are separate commits. The box is
    the signal that they're done: commit the changes of an issue (or
    `TODO.md`) only once it's "Ready for Worker". One still "Ready for
-   Reviewer" (or "Blocked for Reviewer") may be half written: leave its
-   changes uncommitted and untouched, and keep them out of the Worker's own
-   commits (stage files by name, never all of `open/` at once). So the
-   Reviewer ticks the box last.
+   Reviewer" (or "Blocked for Reviewer", or "Paused") may be half written:
+   leave its changes uncommitted and untouched, and keep them out of the
+   Worker's own commits (stage files by name, never all of `open/` at
+   once). So the Reviewer ticks the box last.
 3. **`TODO.md` first,** if it's "Ready for Worker". Lock it as any issue
    (`lock.py take TODO`, which checks "Worker Working"). Turn each of its
    items into an open issue (small related items may share one), and
@@ -255,7 +260,10 @@ a round, and that its job is to turn its items into issues.
 Several Workers may work on the issues at once, each on the issues it has
 locked. `lock.py`, beside this file, keeps them apart. It finds the issues
 directory from `--dir DIR`, or the `ISSUES_DIR` environment variable, or
-else `issues/` in the working directory. Its commands:
+else `issues/` in the working directory. It reads a status block whose
+lines are in any order, and one without its "Paused" line (a file from
+before version 1.4.0), and writes the whole block in its order whenever it
+sets a status. Its commands:
 
 - **`lock.py take <issue>`** creates `locks/<issue>.lock` atomically
   (failing if another Worker holds it), checks "Worker Working", and makes
@@ -274,12 +282,15 @@ else `issues/` in the working directory. Its commands:
 - **`lock.py drop <issue>`** removes the lock, if any, leaving the status,
   after closing an issue.
 - **`lock.py status`** lists the locks, with their age.
-- **`lock.py list`** prints one line per file, `TODO.md` first, then the
-  open issues: its status, its `Priority:`, `... Blocked On:` and
-  `Parent:` lines, "response written" when its last REVIEWER RESPONSE
-  block has text, and "locked". It reads nothing else, so a round can be
-  planned from it (what's ready, what the Reviewer answered, in what
-  order) before reading any issue in full.
+- **`lock.py list`** prints one line per file, `TODO.md` and the open
+  issues: its status, its `Priority:`, `... Blocked On:` and `Parent:`
+  lines, "response written" when its last REVIEWER RESPONSE block has
+  text, and "locked". It reads nothing else, so a round can be planned
+  from it (what's ready, what the Reviewer answered, in what order) before
+  reading any issue in full. The lines are sorted by status, in the status
+  block's order (`TODO.md` first among its status's files, then by name).
+  `lock.py list --color` highlights each status (for a person watching
+  the list, as `Makefile`'s `make watch` does).
 
 Use `TODO` as the issue to lock `TODO.md`.
 

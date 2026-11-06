@@ -22,20 +22,28 @@
                                          the file writable, leaving the
                                          status (after closing an issue)
     lock.py [--dir DIR] status           list the locks, with their age
-    lock.py [--dir DIR] list             one line per file (TODO.md, then
-                                         the open issues): its status, its
+    lock.py [--dir DIR] list [--color]   one line per file (TODO.md and the
+                                         open issues): its status, its
                                          Priority, Blocked On and Parent
                                          lines, whether its last REVIEWER
                                          RESPONSE block has text, and
                                          whether it's locked; a round can be
                                          planned from it without reading
-                                         every file
+                                         every file. Sorted by status, in
+                                         the status block's order (TODO.md
+                                         first among its status's files,
+                                         then by name); --color highlights
+                                         each status
 
 The issues directory is --dir DIR, or the ISSUES_DIR environment variable,
 or else issues/ in the working directory. <issue> is a file name in its
 open/ without ".md", or "TODO" for its TODO.md. A lock is
 locks/<issue>.lock, created with O_EXCL, so two Workers can't both take an
 issue; it holds who took it and when.
+
+A status block is read in any order of its lines, and with or without its
+"Paused" line (as files from before 1.4.0 have them); whenever lock.py sets
+a status, it writes the whole block in LABELS' order.
 """
 
 import datetime
@@ -45,16 +53,20 @@ import sys
 
 ISSUES = os.environ.get("ISSUES_DIR", "issues")
 LOCKS = os.path.join(ISSUES, "locks")
-# The status block's lines, in order, in every issue and in TODO.md.
+# The status block's lines, in order, in every issue and in TODO.md. `list`
+# sorts by this order too.
 LABELS = [
-    "Ready for Worker",
     "Ready for Reviewer",
-    "Blocked for Worker",
-    "Blocked for Reviewer",
+    "Ready for Worker",
     "Worker Working",
+    "Blocked for Reviewer",
+    "Blocked for Worker",
+    "Paused",
 ]
-# The statuses the Worker may set. "Blocked for Reviewer" is the
-# Reviewer's alone.
+# Lines a status block may lack: added in a later version than some files.
+OPTIONAL_LABELS = {"Paused"}
+# The statuses the Worker may set. "Blocked for Reviewer" and "Paused" are
+# the Reviewer's alone.
 STATUSES = {
     "worker": "Ready for Worker",
     "reviewer": "Ready for Reviewer",
@@ -84,28 +96,32 @@ def set_writable(path, writable):
 
 def read_status(path):
     """The file's lines, how many of them are its status block, and the
-    label checked in it (None if none is)."""
+    label checked in it (None if none is). The block's lines may come in any
+    order, each at most once, and those in OPTIONAL_LABELS may be missing."""
     with open(path) as f:
         lines = f.read().split("\n")
     n = 0
     checked = None
-    while n < len(lines) and n < len(LABELS) and lines[n][4:] == LABELS[n] \
+    seen = set()
+    while n < len(lines) and lines[n][4:] in LABELS and lines[n][4:] not in seen \
             and lines[n][:4] in ("[ ] ", "[x] "):
+        seen.add(lines[n][4:])
         if lines[n][1] == "x":
-            checked = LABELS[n]
+            checked = lines[n][4:]
         n += 1
-    if n < len(LABELS):
+    if not seen >= set(LABELS) - OPTIONAL_LABELS:
         sys.exit(f"{path}: no status block at the top")
     return lines, n, checked
 
 
 def set_status(path, status):
+    """Check `status` (a key of STATUSES), writing the whole block, in
+    LABELS' order."""
     lines, n, _ = read_status(path)
     label = STATUSES[status]
-    for i in range(n):
-        lines[i] = ("[x] " if LABELS[i] == label else "[ ] ") + LABELS[i]
+    block = [("[x] " if l == label else "[ ] ") + l for l in LABELS]
     with open(path, "w") as f:
-        f.write("\n".join(lines))
+        f.write("\n".join(block + lines[n:]))
 
 
 # Who holds a lock: a Claude Code background job's name, when it runs as one
@@ -216,26 +232,48 @@ def header(path):
     return checked, fields, response
 
 
-def show_list():
-    """One line per file, TODO.md first, then the open issues."""
+# `list --color`: each status's background, from the 16 standard ANSI colors
+# (the bright ones, and white, which terminals show as light gray), all light
+# enough for the black text drawn on them.
+COLORS = {
+    "Ready for Reviewer": "102",    # bright green
+    "Ready for Worker": "105",      # bright magenta: purple
+    "Worker Working": "103",        # bright yellow
+    "Blocked for Reviewer": "101",  # bright red
+    "Blocked for Worker": "101",
+    "Paused": "47",                 # white: light gray
+}
+
+
+def show_list(color):
+    """One line per file (TODO.md and the open issues), sorted by status in
+    LABELS' order, then TODO.md first, then by name; files with nothing
+    checked or no status block come last."""
     names = ["TODO"] if os.path.exists(issue_file("TODO")) else []
     open_dir = os.path.join(ISSUES, "open")
     if os.path.isdir(open_dir):
-        names += sorted(f[:-3] for f in os.listdir(open_dir) if f.endswith(".md"))
+        names += [f[:-3] for f in os.listdir(open_dir) if f.endswith(".md")]
     width = max((len(name) for name in names), default=0) + 2
+    rows = []
     for name in names:
         try:
             checked, fields, response = header(issue_file(name))
         except SystemExit:
-            print(f"{name:<{width}}no status block")
+            rows.append((len(LABELS) + 1, name, f"{name:<{width}}no status block"))
             continue
-        parts = [f"{name:<{width - 2}}", f"{checked or 'nothing checked':<20}"]
+        status = f"{checked or 'nothing checked':<20}"
+        if color and checked in COLORS:
+            status = f"\033[30;{COLORS[checked]}m{status}\033[0m"
+        parts = [f"{name:<{width - 2}}", status]
         parts += [f"{key}: {fields[key]}" for key in HEADER_KEYS if key in fields]
         if response:
             parts.append("response written")
         if os.path.exists(lock_file(name)):
             parts.append("locked")
-        print("  ".join(parts).rstrip())
+        rank = LABELS.index(checked) if checked in LABELS else len(LABELS)
+        rows.append((rank, name, "  ".join(parts).rstrip()))
+    for _, _, line in sorted(rows, key=lambda row: (row[0], row[1] != "TODO", row[1])):
+        print(line)
 
 
 def main(args):
@@ -245,8 +283,8 @@ def main(args):
         LOCKS = os.path.join(ISSUES, "locks")
     if args[:1] == ["status"]:
         show_status()
-    elif args[:1] == ["list"]:
-        show_list()
+    elif args == ["list"] or args == ["list", "--color"]:
+        show_list(color=len(args) == 2)
     elif len(args) == 2 and args[0] == "take":
         take(args[1])
     elif len(args) == 2 and args[0] == "open":

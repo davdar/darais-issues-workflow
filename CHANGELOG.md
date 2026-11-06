@@ -4,6 +4,36 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.4.0 (2026-11-06)
+
+A new status, "Paused": an issue put down for a while, neither to be
+worked on nor closed. Only the Reviewer sets it; to the Worker it's the
+same as "Ready for Reviewer". The status block's lines have a new order:
+
+    [ ] Ready for Reviewer
+    [ ] Ready for Worker
+    [ ] Worker Working
+    [ ] Blocked for Reviewer
+    [ ] Blocked for Worker
+    [ ] Paused
+
+`lock.py list` sorts its lines by status, in that order (`TODO.md` first
+among its status's files, then by name), and `lock.py list --color`
+highlights each status. A new `Makefile`, to copy into a project, has
+`make status` (the list, in color) and `make watch` (the list again
+whenever an issue changes, with `entr`); `README.md` says how to use them.
+
+`lock.py` reads a status block in any order of its lines, with or without
+"Paused", and writes it in the new order whenever it sets a status, so
+nothing breaks before a project migrates.
+
+Migrating: rewrite the status block of `TODO.md` and of each open issue in
+the new order, with "Paused" added and the same box checked, except in
+files with the Reviewer's uncommitted changes (one "Ready for Reviewer"
+being written, say): leave those to be rewritten when `lock.py` next sets
+their status. Commit the rest on the main branch, and set `Workflow
+version: 1.4.0`.
+
 ## 1.3.0 (2026-11-05)
 
 `lock.py list`: one line per file (`TODO.md`, then the open issues) with

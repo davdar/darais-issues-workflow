@@ -15,6 +15,7 @@ reads; this file is for people setting it up.
 | `PROJECT.template.md` | the settings each project fills in, as its `issues/PROJECT.md`      |
 | `CHANGELOG.md`        | what changed between versions, and how to migrate                   |
 | `update.sh`           | a `SessionStart` hook that keeps a clone current (see "Updating")   |
+| `Makefile`            | `make status` and `make watch` (see "Watching the issues")          |
 
 ## Using it in a project
 
@@ -52,6 +53,24 @@ reads; this file is for people setting it up.
    tracked in `issues/` with the Darais Issues Workflow skill; read its
    `SKILL.md`, and `issues/PROJECT.md` and `issues/README.md`, before
    working on an issue."
+
+## Watching the issues
+
+`lock.py list` prints one line per issue (and `TODO.md`): its status,
+priority, what it's blocked on, its parent, whether a response is written
+in it, and whether a Worker holds its lock, sorted by status. `Makefile`
+wraps it, for a person following the work; copy it to the project's root
+(or its targets into the project's own `Makefile`), and change `lock.py`'s
+path in it if the skill isn't in `~/.claude/skills`:
+
+- **`make status`** prints the list once, each status highlighted in its
+  own color (`lock.py list --color`): "Ready for Reviewer" green, "Ready
+  for Worker" purple, "Worker Working" yellow, "Blocked for ..." red,
+  "Paused" gray.
+- **`make watch`** prints it again whenever an issue's file changes, using
+  [`entr`](https://eradman.com/entrproject/) (`brew install entr`, or your
+  package manager's `entr`), until Ctrl-C. Issues added and closed are
+  picked up as they come and go.
 
 ## Updating
 
