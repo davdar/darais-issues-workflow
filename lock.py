@@ -22,6 +22,14 @@
                                          the file writable, leaving the
                                          status (after closing an issue)
     lock.py [--dir DIR] status           list the locks, with their age
+    lock.py [--dir DIR] list             one line per file (TODO.md, then
+                                         the open issues): its status, its
+                                         Priority, Blocked On and Parent
+                                         lines, whether its last REVIEWER
+                                         RESPONSE block has text, and
+                                         whether it's locked; a round can be
+                                         planned from it without reading
+                                         every file
 
 The issues directory is --dir DIR, or the ISSUES_DIR environment variable,
 or else issues/ in the working directory. <issue> is a file name in its
@@ -180,6 +188,56 @@ def show_status():
             print(f"{name[:-5]}: {text} (age {str(age).split('.')[0]})")
 
 
+HEADER_KEYS = ["Priority", "Worker Blocked On", "Reviewer Blocked On", "Parent"]
+
+
+def header(path):
+    """A file's status (None if nothing is checked), its header lines
+    (HEADER_KEYS, between the status block and the title), and whether its
+    last REVIEWER RESPONSE block has anything in it. Raises SystemExit if
+    the file has no status block."""
+    lines, n, checked = read_status(path)
+    fields = {}
+    for line in lines[n:]:
+        if line.startswith("#"):
+            break
+        key, sep, value = line.partition(": ")
+        if sep and key in HEADER_KEYS:
+            fields[key] = value.strip()
+    response = False
+    marks = [i for i, line in enumerate(lines) if line.strip() == "REVIEWER RESPONSE"]
+    if marks:
+        for line in lines[marks[-1] + 1:]:
+            if line.strip() and set(line.strip()) == {"-"}:
+                break
+            if line.strip():
+                response = True
+                break
+    return checked, fields, response
+
+
+def show_list():
+    """One line per file, TODO.md first, then the open issues."""
+    names = ["TODO"] if os.path.exists(issue_file("TODO")) else []
+    open_dir = os.path.join(ISSUES, "open")
+    if os.path.isdir(open_dir):
+        names += sorted(f[:-3] for f in os.listdir(open_dir) if f.endswith(".md"))
+    width = max((len(name) for name in names), default=0) + 2
+    for name in names:
+        try:
+            checked, fields, response = header(issue_file(name))
+        except SystemExit:
+            print(f"{name:<{width}}no status block")
+            continue
+        parts = [f"{name:<{width - 2}}", f"{checked or 'nothing checked':<20}"]
+        parts += [f"{key}: {fields[key]}" for key in HEADER_KEYS if key in fields]
+        if response:
+            parts.append("response written")
+        if os.path.exists(lock_file(name)):
+            parts.append("locked")
+        print("  ".join(parts).rstrip())
+
+
 def main(args):
     global ISSUES, LOCKS
     if args[:1] == ["--dir"] and len(args) >= 2:
@@ -187,6 +245,8 @@ def main(args):
         LOCKS = os.path.join(ISSUES, "locks")
     if args[:1] == ["status"]:
         show_status()
+    elif args[:1] == ["list"]:
+        show_list()
     elif len(args) == 2 and args[0] == "take":
         take(args[1])
     elif len(args) == 2 and args[0] == "open":

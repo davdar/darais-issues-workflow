@@ -4,6 +4,15 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.3.0 (2026-11-05)
+
+`lock.py list`: one line per file (`TODO.md`, then the open issues) with
+its status, its `Priority:`, `... Blocked On:` and `Parent:` lines,
+whether its last REVIEWER RESPONSE block has text, and whether it's
+locked, so that a round can be planned without reading every issue in
+full. A file without a status block is listed as such. Nothing to
+migrate; set `Workflow version: 1.3.0`.
+
 ## 1.2.2 (2026-11-05)
 
 A round's step 3 says that the Worker locks `TODO.md` (`lock.py take

@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.2.2. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.3.0. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -268,6 +268,12 @@ else `issues/` in the working directory. Its commands:
 - **`lock.py drop <issue>`** removes the lock, if any, leaving the status,
   after closing an issue.
 - **`lock.py status`** lists the locks, with their age.
+- **`lock.py list`** prints one line per file, `TODO.md` first, then the
+  open issues: its status, its `Priority:`, `... Blocked On:` and
+  `Parent:` lines, "response written" when its last REVIEWER RESPONSE
+  block has text, and "locked". It reads nothing else, so a round can be
+  planned from it (what's ready, what the Reviewer answered, in what
+  order) before reading any issue in full.
 
 Use `TODO` as the issue to lock `TODO.md`.
 
