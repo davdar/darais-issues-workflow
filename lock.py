@@ -33,7 +33,9 @@
                                          the status block's order (TODO.md
                                          first among its status's files,
                                          then by name); --color prints each
-                                         status in bold, in its color
+                                         status in bold, in its color; each
+                                         line cut to the terminal's width, with
+                                         … where it was cut (gray with --color)
 
 The issues directory is --dir DIR, or the ISSUES_DIR environment variable,
 or else issues/ in the working directory. <issue> is a file name in its
@@ -243,6 +245,38 @@ COLORS = {
     "Paused by Reviewer": "37",     # white: light gray
 }
 
+# A truncated line's last column, in "Paused by Reviewer"'s gray with --color.
+ELLIPSIS = "…"
+
+
+def terminal_width():
+    """The terminal's width in columns, or None when there is no terminal to fit (the output
+    piped, and COLUMNS not set), so that nothing is truncated."""
+    columns = os.environ.get("COLUMNS", "")
+    if columns.isdigit() and int(columns) > 0:
+        return int(columns)
+    try:
+        return os.get_terminal_size(sys.stdout.fileno()).columns
+    except OSError:
+        return None
+
+
+def fit(plain, status_span, color, checked, width):
+    """A line, cut to the width with an ellipsis as its last column if it is longer, then its
+    status colored: truncating the plain text first, so that escape codes neither count
+    toward the width nor are cut in half."""
+    truncated = width is not None and len(plain) > width
+    if truncated:
+        plain = plain[:max(width - 1, 0)]
+    start, end = status_span
+    end = min(end, len(plain))
+    if color and checked in COLORS and start < end:
+        plain = (plain[:start] + f"\033[1;{COLORS[checked]}m" + plain[start:end] + "\033[0m"
+                 + plain[end:])
+    if truncated:
+        plain += f"\033[1;{COLORS['Paused by Reviewer']}m{ELLIPSIS}\033[0m" if color else ELLIPSIS
+    return plain
+
 
 def show_list(color):
     """One line per file (TODO.md and the open issues), sorted by status in
@@ -253,24 +287,28 @@ def show_list(color):
     if os.path.isdir(open_dir):
         names += [f[:-3] for f in os.listdir(open_dir) if f.endswith(".md")]
     width = max((len(name) for name in names), default=0) + 2
+    columns = terminal_width()
     rows = []
     for name in names:
         try:
             checked, fields, response = header(issue_file(name))
         except SystemExit:
-            rows.append((len(LABELS) + 1, name, f"{name:<{width}}no status block"))
+            line = fit(f"{name:<{width}}no status block", (0, 0), color, None, columns)
+            rows.append((len(LABELS) + 1, name, line))
             continue
         status = f"{checked or 'nothing checked':<20}"
-        if color and checked in COLORS:
-            status = f"\033[1;{COLORS[checked]}m{status}\033[0m"
         parts = [f"{name:<{width - 2}}", status]
         parts += [f"{key}: {fields[key]}" for key in HEADER_KEYS if key in fields]
         if response:
             parts.append("response written")
         if os.path.exists(lock_file(name)):
             parts.append("locked")
+        plain = "  ".join(parts).rstrip()
+        # The status's place in the line (its padding not colored past the line's end).
+        start = width
+        span = (start, start + len(status))
         rank = LABELS.index(checked) if checked in LABELS else len(LABELS)
-        rows.append((rank, name, "  ".join(parts).rstrip()))
+        rows.append((rank, name, fit(plain, span, color, checked, columns)))
     for _, _, line in sorted(rows, key=lambda row: (row[0], row[1] != "TODO", row[1])):
         print(line)
 

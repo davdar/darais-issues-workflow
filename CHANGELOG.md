@@ -4,6 +4,15 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.4.1 (2026-11-09)
+
+`lock.py list` fits the terminal: in a terminal (or with `COLUMNS` set),
+each line is cut to its width, with `…` as its last column where it was
+cut, gray with `--color` ("Paused by Reviewer"'s color), so that no line
+wraps. Piped, with no width to fit, the lines are whole, as before.
+
+Nothing to migrate: set `Workflow version: 1.4.1`.
+
 ## 1.4.0 (2026-11-06)
 
 A new status, "Paused by Reviewer": an issue put down for a while,

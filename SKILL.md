@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.4.0. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.4.1. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -290,7 +290,10 @@ whenever it sets a status. Its commands:
   reading any issue in full. The lines are sorted by status, in the status
   block's order (`TODO.md` first among its status's files, then by name).
   `lock.py list --color` prints each status in bold, in a color of its own
-  (for a person watching the list, as `Makefile`'s `make watch` does).
+  (for a person watching the list, as `Makefile`'s `make watch` does). In
+  a terminal (or with `COLUMNS` set), each line is cut to its width, with
+  `…` where it was cut (gray with `--color`), so that no line wraps; piped,
+  the lines are whole, so a Worker reading the list sees all of each.
 
 Use `TODO` as the issue to lock `TODO.md`.
 
