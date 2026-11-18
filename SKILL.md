@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.4.1. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.5.0. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -52,8 +52,9 @@ this file, is a template):
 - the *workflow version*: the version of this skill whose changes the
   project has applied, as `Workflow version: 1.0.0`;
 - the *main branch*, and how to push it;
-- where *worktrees* go;
-- the *full checks*, which must pass before an issue closes;
+- how *worktrees* are used, when not as "Branches and worktrees" says;
+- the *full checks*, which must pass before an issue closes (their steps
+  are in `checks.sh`, beside `PROJECT.md`);
 - anything else the workflow needs to know to run in the project, such as
   how to run commands in its sandbox.
 
@@ -128,6 +129,10 @@ In the issues directory:
 - `README.md` (optional): for people reading the repository, what the
   directory is (pointing to this skill and to `PROJECT.md`), and what the
   project adds to the workflow.
+- `checks.sh`: the steps of the full checks, one line each, as
+  `step <name> <directory> <command ...>` (the command is run in that
+  directory of the issue's checks checkout); `full-checks.sh`, beside this
+  file, runs them.
 - `TODO.md`: new requests from the Reviewer, not yet issues.
 - `open/<issue>.md`: an open issue, named in kebab case (`check-speed`).
 - `closed/<issue>.md`: a closed one.
@@ -239,21 +244,60 @@ a round, and that its job is to turn its items into issues.
 
 ## Branches and worktrees
 
-- **One branch and worktree per issue,** never the main checkout:
+- **One branch per issue,** `issue/<issue>`, made from the main branch. The
+  main checkout stays on the main branch, and no issue's work is done there.
+- **The work on a branch is done by subagents, each in a temporary worktree
+  that Claude Code makes for it** (a subagent started with `isolation:
+  "worktree"`), not in a worktree made with `git worktree add`. Claude
+  Code's sandbox keeps `.git/worktrees/` read-only except for worktrees it
+  made itself, so `git commit` fails in any other. A subagent's brief says:
+  - first, `git switch issue/<issue>` (or `git switch -c issue/<issue>
+    <main branch>` if it doesn't exist yet), and `git rebase <main branch>`
+    when the round calls for it, to take in other issues' work;
+  - commit work in progress often;
+  - leave the issue files alone (see below);
+  - at the end, with everything committed, `git switch -` back to the
+    branch it started on, so that Claude Code removes the worktree. (A
+    worktree left on the issue's branch keeps it checked out, and the next
+    subagent can't switch to it.)
 
-      git worktree add <worktrees>/<issue> -b issue/<issue> <main branch>
+  Every change to the branch goes this way, small ones included.
+- **The main session stays in the main checkout.** It triages, edits and
+  commits issue files, merges and pushes, all there, and never enters a
+  worktree itself: after leaving one, its shell can't read the main
+  checkout until Claude Code is restarted.
+- **One subagent per issue at a time:** a branch can be checked out in only
+  one worktree.
+- **A subagent's worktree can outlive it,** still listed by `git worktree
+  list` and marked locked. Once the subagent has finished, check that the
+  worktree has nothing uncommitted and that its branch is merged (`git
+  merge-base --is-ancestor <branch> <main branch>`), then, each as its own
+  command from the repository's root: `git worktree unlock <path>`, `git
+  worktree remove <path>`, `git branch -d <branch>`.
+- **The full checks run in the issue's checks checkout,**
+  `.worktrees/<issue>-checks` (which git ignores): a plain directory, not a
+  git worktree, that keeps its build outputs between runs, so that builds
+  there are incremental. From the repository's root,
 
-  Commit to the branch as often as is useful, and rebase it on the main
-  branch to take in other issues' work.
+      sh <checkout>/full-checks.sh <issue>
+
+  (`full-checks.sh` is beside this file) brings it to the issue's branch
+  with `checkout.sh` (git's `read-tree` and an index of its own, rewriting
+  only the files that changed and writing nothing under `.git`), then runs
+  the project's steps, from `checks.sh` in the main checkout's issues
+  directory, each with a log in `.worktrees/<issue>-checks.logs/`. It
+  prints a line per step, and its exit status is nonzero if any failed.
 - **A branch that needs another issue's unmerged work** is created from
   that issue's branch instead (*stacked*), and its issue says so. It merges
   after that issue closes, rebased onto the main branch then; commits
   already merged in their rebased form are skipped (`git rebase --skip`).
 - **Issue files live only in the main checkout,** on the main branch: its
   copy is the one source of truth. Edit an issue's file there, not in a
-  worktree's copy, and commit it on the main branch. Check the working
-  directory before editing or committing one: a shell left in a worktree
-  is the easy way to get this wrong.
+  worktree's copy, and commit it on the main branch.
+- **Where the Worker can commit in a worktree it made itself** (there is
+  no such sandbox), a project may keep one long-lived worktree per issue
+  instead (`git worktree add <folder>/<issue> -b issue/<issue> <main
+  branch>`), and run the full checks there; its `PROJECT.md` says so.
 
 ## Locks
 
@@ -298,7 +342,7 @@ whenever it sets a status. Its commands:
 Use `TODO` as the issue to lock `TODO.md`.
 
 **Stale work:** "Worker Working" with no lock, or with a lock older than a
-day whose worktree has no recent changes, was left by a session that
+day whose branch has no recent commits, was left by a session that
 ended mid-issue (a crash, a stop, a usage limit). It means "Ready for
 Worker", and the lock may be broken, saying so in the issue. Locks are
 local to one machine.
@@ -311,13 +355,17 @@ a fast-forward merge needs the branch rebased after the last of them:
 
 1. In the main checkout, append the final notes to the issue, and commit
    them on the main branch.
-2. In the worktree, rebase on the main branch, then run the full checks.
+2. A subagent rebases the branch on the main branch; then run the full
+   checks (`full-checks.sh <issue>`).
 3. In the main checkout, `git merge --ff-only issue/<issue>`.
 4. Remove the status boxes and the `Priority:` and `... Blocked On:` lines,
    keeping `Parent:` if it has one; `git mv` the file to `closed/`,
    commit, `lock.py drop <issue>`, and push the main branch.
-5. In the main checkout, `git worktree remove <worktrees>/<issue>`, then
-   `git branch -d issue/<issue>`, each as its own command.
+5. In the main checkout, `git branch -d issue/<issue>`, then delete the
+   checks checkout: `rm -rf` on each of `.worktrees/<issue>-checks`,
+   `.worktrees/<issue>-checks.index` and `.worktrees/<issue>-checks.logs`,
+   by its literal path, each as its own command. (With a long-lived
+   worktree instead: `git worktree remove <folder>/<issue>` first.)
 6. Issues blocked on it, once all their blockers are closed, become ready
    (`lock.py unblock`), and branches stacked on it are rebased onto the
    main branch.

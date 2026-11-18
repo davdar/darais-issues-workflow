@@ -4,6 +4,51 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.5.0 (2026-11-18)
+
+An issue has a branch but no long-lived worktree. Since Claude Code
+2.1.323 (November 2026), its sandbox keeps `.git/worktrees/` read-only
+except for worktrees Claude Code made itself, so `git commit` fails in a
+worktree made with `git worktree add` (`Unable to create
+'.git/worktrees/<name>/index.lock': Operation not permitted`), and no
+setting short of turning off the sandbox's filesystem isolation lifts it.
+(Worked out in David's `research-ideas` project, 2026-11-16.) So
+"Branches and worktrees" now says:
+
+- every change to an issue's branch is made by a subagent started with
+  `isolation: "worktree"`, which switches to the branch, commits there, and
+  switches back at the end so that its worktree is removed;
+- the main session stays in the main checkout, and never enters a
+  worktree;
+- the full checks run in a checks checkout, `.worktrees/<issue>-checks`, a
+  plain directory that keeps its build outputs. Two new scripts beside
+  `SKILL.md` do it: `checkout.sh <issue>` brings the checkout to the
+  issue's branch, and `full-checks.sh <issue>` runs that, then the
+  project's steps, from a new file in the issues directory, `checks.sh`
+  (one `step <name> <directory> <command ...>` line each).
+
+"Closing an issue" changes with it: a subagent does the rebase, and there
+is a checks checkout to delete instead of a worktree to remove. A project
+whose Worker can commit in a worktree it made itself may keep long-lived
+worktrees, saying so in its `PROJECT.md`.
+
+Migrating:
+
+1. Add `/.worktrees/` and `/.claude/worktrees/` to `.gitignore`.
+2. Write `checks.sh` in the issues directory, from the full checks in
+   `PROJECT.md`. If the project has its own copies of `checkout.sh` and
+   `full-checks.sh`, their steps move to `checks.sh`, and the copies are
+   deleted.
+3. In `PROJECT.md`, rewrite the "Worktrees" and "The full checks"
+   settings as `PROJECT.template.md` has them, and set `Workflow version:
+   1.5.0`. If the issues directory's `README.md` describes this
+   arrangement as the project's own addition, cut that down to what is
+   particular to the project.
+4. An open issue with a long-lived worktree keeps it until the issue next
+   resumes. Then check that it has nothing uncommitted (`git -C <worktree>
+   status --short`) and remove it (`git worktree remove <worktree>`), so
+   that its branch is free for subagents.
+
 ## 1.4.1 (2026-11-09)
 
 `lock.py list` fits the terminal: in a terminal (or with `COLUMNS` set),

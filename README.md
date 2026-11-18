@@ -5,8 +5,8 @@ A Claude Code skill.
 A Reviewer (usually a person) and a Worker (usually Claude) work through a
 project's tasks asynchronously, through markdown files in the repository:
 one per issue, each the whole conversation about it, each worked on in its
-own branch and worktree. `SKILL.md` is the workflow itself, which Claude
-reads; this file is for people setting it up.
+own branch. `SKILL.md` is the workflow itself, which Claude reads; this
+file is for people setting it up.
 
 | File                  | What it is                                                          |
 |-----------------------|---------------------------------------------------------------------|
@@ -14,6 +14,8 @@ reads; this file is for people setting it up.
 | `lock.py`             | takes and releases issues, so several Workers don't collide         |
 | `PROJECT.template.md` | the settings each project fills in, as its `issues/PROJECT.md`      |
 | `CHANGELOG.md`        | what changed between versions, and how to migrate                   |
+| `checkout.sh`         | brings an issue's checks checkout to its branch                     |
+| `full-checks.sh`      | runs a project's full checks there, from its `issues/checks.sh`     |
 | `update.sh`           | a `SessionStart` hook that keeps a clone current (see "Updating")   |
 | `Makefile`            | `make status` and `make watch` (see "Watching the issues")          |
 
@@ -47,8 +49,15 @@ reads; this file is for people setting it up.
    what the directory is, pointing to this skill and to `PROJECT.md`, and
    whatever the project adds to the workflow, such as its own conventions
    for issues), `issues/TODO.md` with its status block,
-   `issues/open/` and `issues/closed/` (with a `.gitkeep` each), and ignore
-   `issues/locks/` in `.gitignore`.
+   `issues/open/` and `issues/closed/` (with a `.gitkeep` each), and
+   `issues/checks.sh` with the steps of the project's full checks, one
+   per line, such as
+
+       step tests . cargo test --workspace
+
+   (a name, a directory of the checkout, and the command to run there).
+   In `.gitignore`, ignore `/issues/locks/`, `/.worktrees/` (the checks
+   checkouts) and `/.claude/worktrees/` (subagents' worktrees).
 4. **Point the project's `CLAUDE.md` at it,** in a line such as "Work is
    tracked in `issues/` with the Darais Issues Workflow skill; read its
    `SKILL.md`, and `issues/PROJECT.md` and `issues/README.md`, before
@@ -150,6 +159,16 @@ under `.claude/skills/` (protected by default).
   a submodule checkout, also exclude and allow the update exactly as the
   Worker runs it, such as
   `"git submodule update --remote submodules/darais-issues-workflow"`.
+- **A worktree made with `git worktree add` can't be committed in.** Since
+  Claude Code 2.1.323 (November 2026), the sandbox keeps `.git/worktrees/`
+  read-only except for worktrees Claude Code made itself, and no setting
+  short of turning off its filesystem isolation lifts that. So an issue's
+  branch is worked on by subagents started with `isolation: "worktree"`,
+  whose worktrees Claude Code makes (under `.claude/worktrees/`), and the
+  full checks run in a plain checkout that `checkout.sh` keeps
+  (`.worktrees/<issue>-checks`), as `SKILL.md`'s "Branches and worktrees"
+  says. `git worktree` is still excluded above, for removing a subagent's
+  worktree that outlived it.
 - **An exclusion matches only a plain command that is the whole call.**
   `git -C <dir> pull`, `cd <dir> && git pull`, a pipe or a chain all stay
   sandboxed, and fail. So the Worker `cd`s into a repository as a command
