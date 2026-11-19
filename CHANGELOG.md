@@ -4,6 +4,18 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.5.1 (2026-11-19)
+
+`make watch` prints the list again when the terminal changes size. Since
+1.4.1 `lock.py list` cuts its lines to the terminal's width, but `entr`
+runs it again only when a file changes, so a list printed in a narrow
+terminal stayed cut after the terminal was widened. `Makefile`'s `watch`
+target now runs `entr` in the background and starts it again on
+`SIGWINCH`; its comment says how. (David's change.)
+
+Migrating: a project with its own copy of the `watch` target copies it
+again from `Makefile`, with its comment. Set `Workflow version: 1.5.1`.
+
 ## 1.5.0 (2026-11-18)
 
 An issue has a branch but no long-lived worktree. Since Claude Code

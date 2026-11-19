@@ -79,7 +79,8 @@ path in it if the skill isn't in `~/.claude/skills`:
 - **`make watch`** prints it again whenever an issue's file changes, using
   [`entr`](https://eradman.com/entrproject/) (`brew install entr`, or your
   package manager's `entr`), until Ctrl-C. Issues added and closed are
-  picked up as they come and go.
+  picked up as they come and go, and the list is printed again, at the new
+  width, when the terminal changes size.
 
 ## Updating
 

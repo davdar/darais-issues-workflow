@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.5.0. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.5.1. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
