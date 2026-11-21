@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.5.1. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.5.2. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -190,13 +190,17 @@ with exactly one box checked, in that order (`lock.py list` sorts by it).
   nor closed. Only the Reviewer sets this, and takes it up again by
   ticking another box. To the Worker it's the same as "Ready for Reviewer": the Worker
   never changes it.
-- **Priority** "Auto" means the Worker chooses one. A file without a
+- **Priority** "Auto" means the Worker chooses one. An issue without a
   status block, or without a priority, gets one added: "Ready for Worker",
   and "Auto".
 
-`TODO.md` has the same status block and is handled like any issue. What's
-special about it is its name and place, that the Worker takes it first in
-a round, and that its job is to turn its items into issues.
+`TODO.md` has the six status boxes and nothing else: no `Priority:`
+line, nor any other line of the block. It holds requests, not an issue's
+work, so those lines have nothing to say there. A `TODO.md` without the
+boxes gets them added, "Ready for Worker" ticked, and nothing more.
+Otherwise it is handled like any issue: what's special about it is its
+name and place, that the Worker takes it first in a round, and that its
+job is to turn its items into issues.
 
 ## A round: "make progress on issues"
 

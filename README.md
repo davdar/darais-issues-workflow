@@ -48,8 +48,9 @@ file is for people setting it up.
    those), optionally `issues/README.md` (for readers of the repository:
    what the directory is, pointing to this skill and to `PROJECT.md`, and
    whatever the project adds to the workflow, such as its own conventions
-   for issues), `issues/TODO.md` with its status block,
-   `issues/open/` and `issues/closed/` (with a `.gitkeep` each), and
+   for issues), `issues/TODO.md` with the six status boxes and nothing
+   else (no `Priority:` line), `issues/open/` and `issues/closed/` (with a
+   `.gitkeep` each), and
    `issues/checks.sh` with the steps of the project's full checks, one
    per line, such as
 

@@ -4,6 +4,18 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.5.2 (2026-11-20)
+
+`TODO.md` has the six status boxes and nothing else: no `Priority:`
+line, nor any other line of the status block. `SKILL.md` said that
+`TODO.md` has "the same status block" as an issue, and that a file
+without a priority gets one added, which gave `TODO.md` a priority it
+has no use for. The text now says so; `lock.py` is unchanged, and
+already worked so.
+
+Migrating: delete the `Priority:` line from `TODO.md`, if it has one.
+Set `Workflow version: 1.5.2`.
+
 ## 1.5.1 (2026-11-19)
 
 `make watch` prints the list again when the terminal changes size. Since
