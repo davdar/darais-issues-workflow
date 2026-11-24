@@ -5,7 +5,9 @@
                                          atomically, check "Worker Working",
                                          make the file read-only; refused
                                          unless the issue is "Ready for
-                                         Worker" (or a stale "Worker Working")
+                                         Worker" (or a stale "Worker
+                                         Working"), and when its last REVIEWER
+                                         RESPONSE block is empty
     lock.py [--dir DIR] open <issue>     make a held issue's file writable
                                          (to append to it)
     lock.py [--dir DIR] shut <issue>     make it read-only again
@@ -13,11 +15,15 @@
                                          set the status (worker, reviewer,
                                          blocked, meaning "Blocked for
                                          Worker", or working), make the file
-                                         writable, remove the lock
+                                         writable, remove the lock; `worker`
+                                         is refused when the last REVIEWER
+                                         RESPONSE block is empty
     lock.py [--dir DIR] unblock <issue>  for an issue blocked for the Worker
                                          whose blockers have all closed:
                                          "Ready for Worker", and its `Worker
-                                         Blocked On:` line removed
+                                         Blocked On:` line removed (with a
+                                         warning if its last REVIEWER
+                                         RESPONSE block is empty)
     lock.py [--dir DIR] drop <issue>     remove the lock, if any, and make
                                          the file writable, leaving the
                                          status (after closing an issue)
@@ -26,8 +32,11 @@
                                          open issues): its status, its
                                          Priority, Blocked On and Parent
                                          lines, whether its last REVIEWER
-                                         RESPONSE block has text, and
-                                         whether it's locked; a round can be
+                                         RESPONSE block has text ("response
+                                         written") or, in a file ready for
+                                         the Worker, is empty ("awaiting
+                                         response"), and whether it's
+                                         locked; a round can be
                                          planned from it without reading
                                          every file. Sorted by status, in
                                          the status block's order (TODO.md
@@ -42,6 +51,12 @@ or else issues/ in the working directory. <issue> is a file name in its
 open/ without ".md", or "TODO" for its TODO.md. A lock is
 locks/<issue>.lock, created with O_EXCL, so two Workers can't both take an
 issue; it holds who took it and when.
+
+An issue whose last REVIEWER RESPONSE block is empty is waiting for the
+Reviewer, whatever its status says: the Worker leaves that block only when
+it hands the issue to the Reviewer (SKILL.md, "An issue"). So `take` and
+`release <issue> worker` refuse such an issue, and `list` marks one that is
+"Ready for Worker" as "awaiting response".
 
 A status block is read in any order of its lines, and with or without its
 "Paused by Reviewer" line (as files from before 1.4.0 have them); whenever
@@ -116,6 +131,27 @@ def read_status(path):
     return lines, n, checked
 
 
+def last_response(lines):
+    """Whether the last REVIEWER RESPONSE block in the lines has text: True
+    or False, or None when there is no such block (as in TODO.md, or a new
+    issue whose analysis asked nothing)."""
+    marks = [i for i, line in enumerate(lines) if line.strip() == "REVIEWER RESPONSE"]
+    if not marks:
+        return None
+    for line in lines[marks[-1] + 1:]:
+        if line.strip() and set(line.strip()) == {"-"}:
+            return False
+        if line.strip():
+            return True
+    return False
+
+
+# Why `take` and `release ... worker` refuse an issue whose last block is
+# empty, and what to do instead.
+AWAITING = ("its last REVIEWER RESPONSE block is empty, so it is waiting for the "
+            "Reviewer, whatever its status says (SKILL.md, \"An issue\")")
+
+
 def set_status(path, status):
     """Check `status` (a key of STATUSES), writing the whole block, in
     LABELS' order."""
@@ -149,9 +185,12 @@ def take(issue):
     # Checked once the lock is held, so that no other Worker changes it
     # in between. "Worker Working" with no lock is a crashed session's.
     try:
-        _, _, checked = read_status(path)
+        lines, _, checked = read_status(path)
         if checked not in (STATUSES["worker"], STATUSES["working"]):
             sys.exit(f"{issue} is not ready for the Worker: {checked or 'nothing checked'}")
+        if last_response(lines) is False:
+            sys.exit(f"{issue}: {AWAITING}. If the Worker left it so, hand it to the "
+                     f"Reviewer: `lock.py release {issue} reviewer`")
     except SystemExit:
         os.remove(lock_file(issue))
         raise
@@ -163,6 +202,9 @@ def take(issue):
 
 def release(issue, status):
     path = issue_file(issue)
+    if status == "worker" and last_response(read_status(path)[0]) is False:
+        sys.exit(f"{issue}: {AWAITING}. Release it as `reviewer`; or, if the Worker has "
+                 f"nothing to ask, remove the empty block first")
     set_writable(path, True)
     set_status(path, status)
     if os.path.exists(lock_file(issue)):
@@ -182,6 +224,9 @@ def unblock(issue):
         lines = f.read().split("\n")
     with open(path, "w") as f:
         f.write("\n".join(l for l in lines if not l.startswith(BLOCKED_ON)))
+    if last_response(lines) is False:
+        print(f"{issue} is unblocked, but {AWAITING}: `lock.py take` will refuse it "
+              f"until the Reviewer writes in it", file=sys.stderr)
 
 
 def drop(issue):
@@ -212,8 +257,8 @@ HEADER_KEYS = ["Priority", "Worker Blocked On", "Reviewer Blocked On", "Parent"]
 def header(path):
     """A file's status (None if nothing is checked), its header lines
     (HEADER_KEYS, between the status block and the title), and whether its
-    last REVIEWER RESPONSE block has anything in it. Raises SystemExit if
-    the file has no status block."""
+    last REVIEWER RESPONSE block has anything in it (True, False, or None if
+    it has none). Raises SystemExit if the file has no status block."""
     lines, n, checked = read_status(path)
     fields = {}
     for line in lines[n:]:
@@ -222,16 +267,7 @@ def header(path):
         key, sep, value = line.partition(": ")
         if sep and key in HEADER_KEYS:
             fields[key] = value.strip()
-    response = False
-    marks = [i for i, line in enumerate(lines) if line.strip() == "REVIEWER RESPONSE"]
-    if marks:
-        for line in lines[marks[-1] + 1:]:
-            if line.strip() and set(line.strip()) == {"-"}:
-                break
-            if line.strip():
-                response = True
-                break
-    return checked, fields, response
+    return checked, fields, last_response(lines)
 
 
 # `list --color`: each status in bold, in a dark color of the 8 standard ANSI ones (or, for
@@ -301,6 +337,8 @@ def show_list(color):
         parts += [f"{key}: {fields[key]}" for key in HEADER_KEYS if key in fields]
         if response:
             parts.append("response written")
+        elif response is False and checked == STATUSES["worker"]:
+            parts.append("awaiting response")
         if os.path.exists(lock_file(name)):
             parts.append("locked")
         plain = "  ".join(parts).rstrip()

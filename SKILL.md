@@ -11,7 +11,7 @@ description:
 
 # The Darais Issues Workflow
 
-Version 1.5.2. `CHANGELOG.md`, beside this file, lists what changed
+Version 1.6.0. `CHANGELOG.md`, beside this file, lists what changed
 between versions.
 
 A way for two parties to work through a project's tasks asynchronously,
@@ -156,6 +156,21 @@ end whenever it has something to ask or report:
 
     ---------------------------------------------
 
+The Worker leaves that block only when it hands the issue to the
+Reviewer, and so **an issue whose last response block is empty is waiting
+for the Reviewer, whatever its status box says.** The Worker doesn't work
+on it until the Reviewer has written in the block; `lock.py take` refuses
+it, and `lock.py release <issue> worker` refuses to leave an issue so. A
+Worker that has asked nothing and goes on working leaves no block (a
+progress section, as when a session ends mid-issue, has none). A Reviewer
+who wants the Worker to go on without answering writes so in the block
+("go ahead"), or deletes it. The block is the signal rather than the box
+because the Worker writes the block in the same breath as its questions,
+and only the Reviewer fills it, while the box can be set by anyone at any
+time: a Worker that ticked "Ready for Worker" by mistake, or a Reviewer
+who ticked it before writing, would otherwise send an issue with
+unanswered questions back to the Worker.
+
 At the top of every open issue is its status block:
 
     [ ] Ready for Reviewer
@@ -174,7 +189,8 @@ with exactly one box checked, in that order (`lock.py list` sorts by it).
 
 - **Ready for Reviewer:** waiting for the Reviewer. The Worker never
   changes an issue in this state.
-- **Ready for Worker:** the Worker may work on it.
+- **Ready for Worker:** the Worker may work on it, unless its last
+  response block is empty (above).
 - **Worker Working:** the Worker is working on it, and holds its lock.
 - **Blocked for Reviewer:** the Reviewer can't go on until something else
   happens (feedback from a colleague, say), described briefly in its
@@ -210,10 +226,11 @@ job is to turn its items into issues.
    there is one, the issues directory's `README.md`. Then **triage with
    `lock.py list`**, before reading any issue: only the files it shows as
    "Ready for Worker" (or a "Worker Working" that may be stale, see
-   "Locks") are this round's work, and only they are read further. The
-   rest ("Ready for Reviewer", "Blocked for Reviewer", "Blocked for
-   Worker", "Paused by Reviewer") aren't opened, beyond checking a blocked
-   issue's blockers, which the list also shows.
+   "Locks"), and not marked "awaiting response", are this round's work,
+   and only they are read further. The rest ("Ready for Reviewer",
+   "Blocked for Reviewer", "Blocked for Worker", "Paused by Reviewer", and
+   "awaiting response") aren't opened, beyond checking a blocked issue's
+   blockers, which the list also shows.
 2. **Commit the Reviewer's changes** on the main branch (their responses,
    new items in `TODO.md`, status boxes they set) before working on them,
    so that their changes and the Worker's are separate commits. The box is
@@ -227,8 +244,12 @@ job is to turn its items into issues.
    (`lock.py take TODO`, which checks "Worker Working"). Turn each of its
    items into an open issue (small related items may share one), and
    delete it from `TODO.md`. Analyze each new issue: if it needs no
-   decision from the Reviewer, it's ready to work on; otherwise ask, and
-   hand it to the Reviewer. Then release `TODO.md`, empty, as "Ready for
+   decision from the Reviewer, it's ready to work on ("Ready for Worker",
+   with no response block); otherwise ask, ending with a response block,
+   and create it "Ready for Reviewer". An issue with questions isn't
+   worked on in the round that asked them, even on what the questions
+   don't affect: the Reviewer may answer that the work should go
+   differently. Then release `TODO.md`, empty, as "Ready for
    Reviewer" (`lock.py release TODO reviewer`): the Reviewer adds the next
    requests and ticks "Ready for Worker".
 4. **Then the open issues** marked "Ready for Worker" (and only those),
@@ -240,7 +261,8 @@ job is to turn its items into issues.
    status it's left in: "Ready for Reviewer" whenever the Worker is done
    with it for now (finished, or waiting on a question), and "Ready for
    Worker" only when work is left that a Worker can do without the
-   Reviewer (as when a session ends mid-issue). A question doesn't stop
+   Reviewer (as when a session ends mid-issue), and never with an empty
+   response block at its end (see "An issue"). A question doesn't stop
    the rest: keep working on everything it doesn't affect, and hand the
    issue to the Reviewer only when nothing is left that doesn't need them.
 6. **New work found along the way** becomes a new issue, with `Parent:`
@@ -317,26 +339,33 @@ whenever it sets a status. Its commands:
   (failing if another Worker holds it), checks "Worker Working", and makes
   the file read-only, so that an editor warns the Reviewer before they
   change it (it says so, and that `open` comes before editing). It refuses
-  an issue that isn't "Ready for Worker" (or a stale "Worker Working").
+  an issue that isn't "Ready for Worker" (or a stale "Worker Working"),
+  and one whose last REVIEWER RESPONSE block is empty (see "An issue";
+  if the Worker left it so, it releases the issue as `reviewer`).
 - **`lock.py open <issue>`** makes a held issue's file writable, to append
   to it; **`lock.py shut <issue>`** makes it read-only again.
 - **`lock.py release <issue> <status>`** sets the status (`worker`,
   `reviewer`, `blocked` or `working`), makes the file writable, and removes
   the lock. `blocked` is "Blocked for Worker": the Worker adds the `Worker
-  Blocked On:` line itself, before releasing.
+  Blocked On:` line itself, before releasing. `worker` is refused
+  when the last REVIEWER RESPONSE block is empty: release as `reviewer`.
 - **`lock.py unblock <issue>`** is for an issue blocked for the Worker
   whose blockers have all closed: it checks "Ready for Worker" and removes
-  the `Worker Blocked On:` line (no lock needed).
+  the `Worker Blocked On:` line (no lock needed). If its last REVIEWER
+  RESPONSE block is empty, it says so: the issue is still waiting for the
+  Reviewer, and `take` refuses it until they write in it.
 - **`lock.py drop <issue>`** removes the lock, if any, leaving the status,
   after closing an issue.
 - **`lock.py status`** lists the locks, with their age.
 - **`lock.py list`** prints one line per file, `TODO.md` and the open
   issues: its status, its `Priority:`, `... Blocked On:` and `Parent:`
   lines, "response written" when its last REVIEWER RESPONSE block has
-  text, and "locked". It reads nothing else, so a round can be planned
-  from it (what's ready, what the Reviewer answered, in what order) before
-  reading any issue in full. The lines are sorted by status, in the status
-  block's order (`TODO.md` first among its status's files, then by name).
+  text, "awaiting response" when the file is "Ready for Worker" but that
+  block is empty (so `take` would refuse it), and "locked". It reads
+  nothing else, so a round can be planned from it (what's ready, what the
+  Reviewer answered, in what order) before reading any issue in full. The
+  lines are sorted by status, in the status block's order (`TODO.md`
+  first among its status's files, then by name).
   `lock.py list --color` prints each status in bold, in a color of its own
   (for a person watching the list, as `Makefile`'s `make watch` does). In
   a terminal (or with `COLUMNS` set), each line is cut to its width, with

@@ -68,10 +68,11 @@ file is for people setting it up.
 
 `lock.py list` prints one line per issue (and `TODO.md`): its status,
 priority, what it's blocked on, its parent, whether a response is written
-in it, and whether a Worker holds its lock, sorted by status. `Makefile`
-wraps it, for a person following the work; copy it to the project's root
-(or its targets into the project's own `Makefile`), and change `lock.py`'s
-path in it if the skill isn't in `~/.claude/skills`:
+in it (or awaited, in an issue ticked "Ready for Worker" whose response
+block is empty), and whether a Worker holds its lock, sorted by status.
+`Makefile` wraps it, for a person following the work; copy it to the
+project's root (or its targets into the project's own `Makefile`), and
+change `lock.py`'s path in it if the skill isn't in `~/.claude/skills`:
 
 - **`make status`** prints the list once, each status in bold, in its
   own color (`lock.py list --color`): "Ready for Reviewer" green, "Ready

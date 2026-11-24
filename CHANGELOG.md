@@ -4,6 +4,38 @@ Each version, newest first: what changed in `SKILL.md` and `lock.py`, so
 that a project on an older version can see what to do differently after
 updating, and how to migrate its issues directory when it must.
 
+## 1.6.0 (2026-11-24)
+
+An issue whose last REVIEWER RESPONSE block is empty is waiting for the
+Reviewer, whatever its status box says. A Worker had turned a `TODO.md`
+item into an issue, asked the Reviewer questions in it, and then worked
+on it in the same round, before they were answered (in David's PETs
+evaluation project, issue `workflow-empty-response`). `SKILL.md` already
+said to hand such an issue to the Reviewer, but the box was ticked "Ready
+for Worker" by mistake, and nothing checked it. The response block is the
+better signal: the Worker writes it with its questions, and only the
+Reviewer fills it. So:
+
+- `SKILL.md`, "An issue": the Worker leaves a response block only when it
+  hands the issue to the Reviewer, and doesn't work on an issue whose last
+  block is empty. A Reviewer who wants the Worker to go on without
+  answering writes so ("go ahead"), or deletes the block.
+- A round's step 3: a new issue whose analysis asks the Reviewer anything
+  is created "Ready for Reviewer", and isn't worked on in that round.
+- `lock.py take` refuses an issue whose last block is empty, and `lock.py
+  release <issue> worker` refuses to leave one so (release it as
+  `reviewer`). `lock.py unblock` says so when it unblocks such an issue.
+  `lock.py list` marks a "Ready for Worker" file whose last block is empty
+  as "awaiting response".
+
+An issue with no response block at all (a new one whose analysis asked
+nothing, or `TODO.md`) is unaffected.
+
+Migrating: nothing to change in the issues. `lock.py list` shows any open
+issue that `take` now refuses ("awaiting response"): the Reviewer writes
+in it, or the Worker hands it to them (`lock.py release <issue>
+reviewer`). Set `Workflow version: 1.6.0`.
+
 ## 1.5.2 (2026-11-20)
 
 `TODO.md` has the six status boxes and nothing else: no `Priority:`
