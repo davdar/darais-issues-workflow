@@ -24,7 +24,9 @@ Reviewer fills it. So:
   is created "Ready for Reviewer", and isn't worked on in that round.
 - `lock.py take` refuses an issue whose last block is empty, and `lock.py
   release <issue> worker` refuses to leave one so (release it as
-  `reviewer`). `lock.py unblock` says so when it unblocks such an issue.
+  `reviewer`). `lock.py unblock` hands such an issue to the Reviewer:
+  it checks "Ready for Reviewer" rather than "Ready for Worker", so that
+  the box agrees with the block.
   `lock.py list` marks a "Ready for Worker" file whose last block is empty
   as "awaiting response".
 

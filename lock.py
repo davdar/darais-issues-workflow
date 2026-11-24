@@ -21,9 +21,9 @@
     lock.py [--dir DIR] unblock <issue>  for an issue blocked for the Worker
                                          whose blockers have all closed:
                                          "Ready for Worker", and its `Worker
-                                         Blocked On:` line removed (with a
-                                         warning if its last REVIEWER
-                                         RESPONSE block is empty)
+                                         Blocked On:` line removed; "Ready
+                                         for Reviewer" instead if its last
+                                         REVIEWER RESPONSE block is empty
     lock.py [--dir DIR] drop <issue>     remove the lock, if any, and make
                                          the file writable, leaving the
                                          status (after closing an issue)
@@ -215,18 +215,21 @@ def release(issue, status):
 
 def unblock(issue):
     path = issue_file(issue)
-    _, _, checked = read_status(path)
+    lines, _, checked = read_status(path)
     if checked != STATUSES["blocked"]:
         sys.exit(f"{issue} isn't blocked for the Worker: {checked or 'nothing checked'}")
+    # An issue that was also waiting for the Reviewer (its last block empty)
+    # goes to them, so that its box agrees with its block.
+    awaiting = last_response(lines) is False
     set_writable(path, True)
-    set_status(path, "worker")
+    set_status(path, "reviewer" if awaiting else "worker")
     with open(path) as f:
         lines = f.read().split("\n")
     with open(path, "w") as f:
         f.write("\n".join(l for l in lines if not l.startswith(BLOCKED_ON)))
-    if last_response(lines) is False:
-        print(f"{issue} is unblocked, but {AWAITING}: `lock.py take` will refuse it "
-              f"until the Reviewer writes in it", file=sys.stderr)
+    if awaiting:
+        print(f"{issue} is unblocked, and \"Ready for Reviewer\": {AWAITING}",
+              file=sys.stderr)
 
 
 def drop(issue):

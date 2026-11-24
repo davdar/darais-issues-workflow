@@ -352,8 +352,9 @@ whenever it sets a status. Its commands:
 - **`lock.py unblock <issue>`** is for an issue blocked for the Worker
   whose blockers have all closed: it checks "Ready for Worker" and removes
   the `Worker Blocked On:` line (no lock needed). If its last REVIEWER
-  RESPONSE block is empty, it says so: the issue is still waiting for the
-  Reviewer, and `take` refuses it until they write in it.
+  RESPONSE block is empty, the issue was waiting for the Reviewer too, and
+  still is: `unblock` checks "Ready for Reviewer" instead, so that the box
+  agrees with the block, and says so.
 - **`lock.py drop <issue>`** removes the lock, if any, leaving the status,
   after closing an issue.
 - **`lock.py status`** lists the locks, with their age.
